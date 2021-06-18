@@ -1,0 +1,333 @@
+R"html(<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Hill Cipher Demonstration</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <script>
+            const ws = new WebSocket('ws://127.0.0.1:31337');
+            ws.onopen = function(event)
+            {
+                ws.send("g5");
+            }
+
+            ws.addEventListener('message', function(event)
+            {
+
+                let trim_end = ((str) =>
+                {
+                    let i = str.length - 1;
+                    while(str[i] === ' ')
+                    {
+                        str = str.slice(0, i);
+                        --i;
+                    }
+                    return str;
+                });
+
+                if( event.data[0] == 'g' )
+                {
+                    document.getElementById("ct").value = "";
+                    let event_str = event.data;
+                    event_str = event_str.substr(1);
+
+                    let key_size_int = parseInt(event_str[0]);
+                    document.getElementById("key_size").value = event_str[0];
+
+                    event_str = event_str.substr(1);
+
+                    let table = document.getElementById("key");
+
+                    while( table.getElementsByTagName("tr").length > 0 )
+                    {
+                        table.deleteRow(0);
+                    }
+
+
+                    let matrix = new Array(key_size_int);
+
+                    for( let i = 0; i < key_size_int; ++i )
+                    {   // For each row, create column with specified key size.
+                        matrix[i] = new Array(key_size_int);
+                    }
+
+
+                    if( event_str[0] == '[' )
+                    {   // If matrix starts as expected, begin parsing.
+                        let j = 0;
+                        let k = 0;
+                        let num = 0;
+
+                        for( let i = 1; event_str[i-1] != ']'; ++i )
+                        {   // Loop through each character until we reach the end.
+                            if( event_str[i] == ',' )
+                            {   // When number is finished, clean up for next one.
+                                matrix[j][k] = num;
+                                num = 0;
+                                ++k;
+                                ++i;
+                            }
+                            else if( event_str[i] == ';')
+                            {   // When row is finished, clean up for next one.
+                                matrix[j][k] = num;
+                                num = 0;
+                                k = 0;
+                                ++j;
+                                ++i;
+                            }
+                            else if( event_str[i] == ']' )
+                            {   // If we're at the end, finish up.
+                                matrix[j][k] = num;
+                                break;
+                            }
+
+                            if( !isNaN(parseInt(event_str[i])) )
+                            {   // If we're at a digit, continue building number.
+                                num *= 10;
+                                num += parseInt(event_str[i]);
+                            }
+                            else
+                            {   // If not a digit at this point, bad input.
+                                break;
+                            }
+                        }
+                    }
+
+                    for( let i = 0; i < key_size_int; ++i )
+                    {   // Start building table.
+                        // Insert new rows into the table.
+                        let new_row = table.insertRow(table.rows.length);
+
+                        for( let j = 0; j < key_size_int; ++j )
+                        {   // Insert new cells into the row.
+                            let new_cell = new_row.insertCell(j);
+
+                            // Cells contain the key elements.
+                            let cell_content = document.createTextNode(matrix[i][j]);
+                            new_cell.appendChild(cell_content);
+                        }
+                    }
+                }
+                else if( event.data[0] == 'e' )
+                {
+                    let event_str = event.data;
+                    event_str = trim_end(event_str.substr(1));
+                    document.getElementById("ct").value = event_str;
+                }
+                else if( event.data[0] == 'd' )
+                {
+                    let event_str = event.data;
+                    event_str = trim_end(event_str.substr(1));
+                    document.getElementById("pt").value = event_str;
+                }
+                else
+                {
+                    alert("Either there's a bug or you tried something clever.");
+                }
+
+            });
+
+            window.addEventListener('beforeunload', function(event)
+            {
+               ws.close();
+            }, false);
+
+            function gen_key()
+            {
+                let key_size = document.getElementById("key_size").value[0];
+                if( isNaN(parseInt(key_size)) )
+                {   // If key_size isn't a number, default to 5.
+                    key_size = '5';
+                }
+
+                ws.send('g' + key_size);
+            }
+
+            function encrypt()
+            {
+                let plaintext = document.getElementById("pt").value;
+                
+                if( plaintext.length >= 1 )
+                {
+                    ws.send("e" + plaintext);
+                }
+                
+                return plaintext;
+            }
+
+            function decrypt()
+            {
+                let ciphertext = document.getElementById("ct").value;key_size
+                
+                if( ciphertext.length >= 1 )
+                {
+                    ws.send("d" + ciphertext);
+                }
+                
+            }
+
+            function check_value(key_size_input)
+            {
+                let key_value = parseInt(key_size_input.value);
+                if( isNaN(key_value) )
+                {   // Default to 5 if not a number.
+                    key_size_input.value = "5";
+                }
+                else if( key_value > 9 )
+                {   // If too big, go back to 9.
+                    key_size_input.value = "9";
+                }
+                else if( key_value < 2 )
+                {   // If too small, go back to 2.
+                    key_size_input.value = "2";
+                }
+            }
+
+            function check_chars(ele)
+            {
+                // These are the characters that my Hill Cipher implementation accepts.
+                let valid_chars =
+                [
+                    'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+                    'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
+                    '0','1','2','3','4','5','6','7','8','9',' ','~','-','=','!','@','#','$','%','^','&','*','(',')','_','+',
+                    '[',']',';','\'',',','.','/','{','}',':','"','<','>','?','`', '\\', '|', '\t', '\n'
+                ];
+
+                // Hold the element's value.
+                let text = ele.value;
+
+                for( let i = 0; i < text.length; ++i )
+                {   // Check each character.
+                    if( !valid_chars.includes(text[i]) )
+                    {   // If not in our array of valid characters, remove.
+                        if( i+1 == text.length )
+                        {
+                            text = text.slice(0, i);
+                        }
+                    else
+                    {
+                        text = text.slice(0,i) + text.slice(i+1);
+                    }
+
+                    --i;
+                    }
+                }
+
+                // Replace element's text with the sanitized text.
+                ele.value = text;
+            }
+        </script>
+
+        <style>
+            .matrix
+            {
+                padding: 10px;
+                position: relative;
+            }
+
+            .center
+            {
+                margin: auto;
+                width: 50%;
+                padding: 10px;
+            }
+
+            .key
+            {
+                margin: auto;
+                padding: 10px;
+            }
+
+            body
+            {
+                margin: auto;
+                width: 50%;
+                padding: 20px;
+            }
+
+            input[type=number]
+            {
+                width: 23px;
+            }
+
+            button#gen
+            {
+                width: 99px;
+            }
+
+            .matrix:before, .matrix:after
+            {
+                content: "";
+                position: absolute;
+                top: 0;
+                border: 1px solid #000;
+                width: 6px;
+                height: 100%;
+            }
+
+            .matrix:before
+            {
+                left: -6px;
+                border-right: 0px;
+            }
+
+            .matrix:after
+            {
+                right: -6px;
+                border-left: 0px;
+            }
+
+            .matrix td
+            {
+                padding: 5px;
+                text-align: center;
+            }
+
+            .inputarea td
+            {
+                vertical-align: top;
+            }
+        </style>
+
+    </head>
+
+    <body>
+        <!--[if lt IE 7]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+        <div class="center">
+            <div class="key">
+                Key Size: <input type="number" min="2" max="9" value="5" id="key_size" onkeyup="check_value(this);"> <button id="gen" onclick="gen_key();">Generate Key</button>
+
+                <br><br>
+                <table class="matrix" id="key">
+                </table>
+            </div>
+        </div>
+        <br><br>
+
+        <table class="inputarea">
+            <tr>
+                <td>Plaintext:&nbsp;&nbsp; </td>
+                <td><textarea id="pt" rows="6" cols="80" onchange="check_chars(this);" maxlength="1000"></textarea></td>
+            </tr>
+        </table>
+        <br><br>
+        <table class="inputarea">
+                <tr>
+                    <td>Ciphertext:</td>
+                    <td><textarea id="ct" rows="6" cols="80" onchange="check_chars(this);" maxlength="1010"></textarea></td>
+                </tr>
+            </table>
+        <br><br>
+        <div class="center">
+            <button onclick="encrypt();">Encrypt Plaintext</button>
+            <button onclick="decrypt();">Decrypt Ciphertext</button>
+        </div>
+    </body>
+
+</html>)html"

@@ -1,0 +1,28 @@
+body {
+	background-color: rgb(245, 248, 252);
+}
+
+.matrix {
+	position: relative;
+	border-collapse: separate;
+	border-spacing: 15px 0px;
+}
+
+.matrix:before, .matrix:after {
+	content: "";
+	position: absolute;
+	top: 0;
+	border: 2px solid #000;
+	width: 6px;
+	height: 100%;
+}
+
+.matrix:before {
+	left: -6px;
+	border-right: 0;
+}
+
+.matrix:after {
+	right: -6px;
+	border-left: 0;
+}

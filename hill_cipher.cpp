@@ -5,6 +5,8 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/asio/ip/tcp.hpp>
+
+#define MATH_NERD_OMP
 #include <math_nerd/hill_cipher.h>
 
 #include "file_handler.h"
@@ -22,6 +24,7 @@ using tcp = net::ip::tcp;
 auto operator<<(std::ostream &os, hc::hill_key key)->std::ostream &;
 
 auto do_session(tcp::socket socket) -> void
+try
 {
     websocket::stream<tcp::socket> ws{ std::move(socket) };
 
@@ -107,7 +110,7 @@ auto do_session(tcp::socket socket) -> void
             std::uniform_int_distribution<int> key_dist(0, 96);
 
             // Index distribution for fixing invalid keys.
-            std::uniform_int_distribution<int> idx_dist(0, key_size);
+            std::uniform_int_distribution<int> idx_dist(0, key_size - 1);
 
             for( auto i{ 0 }; i < key_size; ++i )
             {
@@ -146,14 +149,18 @@ auto do_session(tcp::socket socket) -> void
         ws.write(buffer.data());
     }
 }
+catch( ... )
+{
+    throw;
+}
 
-auto main() -> int
+auto main(int, char **argv) -> int
 try
 {
     auto const address{ net::ip::make_address("127.0.0.1") };
     auto const port{ static_cast<std::uint16_t>(31337) };
 
-    file_handler file;
+    file_handler file{ argv[0] };
 
     net::io_context ioc{ 1 };
 

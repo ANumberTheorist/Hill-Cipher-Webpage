@@ -1,6 +1,6 @@
 # Hill Cipher Webpage
 
-Web page for Hill Cipher implementation. Will be used for demo to High School students.
+Web page for Hill Cipher implementation. Used for demoing to High School students.
 
 Uses Boost.Beast to create a WebSocket server. It also depends on my [Hill Cipher](https://github.com/MathNerdGamer/hill-cipher) implementation, which itself depends on my [Integers Modulo N](https://github.com/MathNerdGamer/integers-modulo-n) and [Minimal Matrix](https://github.com/MathNerdGamer/minimal-matrix) implementations.
 
